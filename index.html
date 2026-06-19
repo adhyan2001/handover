@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vertel NOC — Shift Handover</title>
+<style>
+:root {
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330;
+  --border:#30363d; --accent:#2e75b6; --accent2:#1f4e79;
+  --red:#da3633; --orange:#d18616; --green:#3fb950;
+  --grey:#8b949e; --text:#e6edf3; --muted:#656d76;
+  --sans:'Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+
+/* TOPBAR */
+#topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:9px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-weight:700;font-size:15px;letter-spacing:.5px;}
+.logo span{color:var(--accent);}
+.actions{display:flex;gap:7px;align-items:center;}
+.save-status{font-size:11px;color:var(--muted);margin-right:4px;}
+.save-status.saved{color:var(--green);}
+.save-status.saving{color:var(--orange);}
+
+/* BUTTONS */
+.btn{padding:6px 13px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12.5px;cursor:pointer;font-family:var(--sans);transition:all .15s;}
+.btn:hover{background:#2d333b;border-color:var(--accent);}
+.btn.primary{background:var(--accent2);border-color:var(--accent);}
+.btn.primary:hover{background:var(--accent);}
+.btn.success{background:#1a3a1a;border-color:var(--green);color:#7ee787;}
+.btn.danger{border-color:var(--red);}
+.btn.danger:hover{background:#3d1c1c;}
+
+/* MAIN */
+#main{max-width:1120px;margin:0 auto;padding:20px 16px 60px;}
+
+/* HEADER BLOCK */
+#hdr{background:linear-gradient(135deg,#1f4e79 0%,#0a2540 100%);border:1px solid var(--accent);border-radius:10px;padding:20px 24px;margin-bottom:18px;}
+#hdr h1{font-size:21px;font-weight:700;letter-spacing:1px;color:#fff;margin-bottom:3px;}
+#hdr p{color:#90b4d4;font-size:12.5px;}
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:14px;}
+.meta-field{background:rgba(0,0,0,.25);border:1px solid rgba(46,117,182,.35);border-radius:6px;padding:7px 11px;}
+.meta-field label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#90b4d4;margin-bottom:3px;}
+.meta-field input{background:transparent;border:none;outline:none;color:#fff;font-size:13px;width:100%;font-family:var(--sans);}
+.meta-field input::placeholder{color:rgba(255,255,255,.3);}
+
+/* SECTION */
+.section{margin-bottom:16px;border-radius:8px;overflow:hidden;}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;user-select:none;border-bottom-width:1px;border-bottom-style:solid;}
+.sec-title{display:flex;align-items:center;gap:9px;font-weight:600;font-size:13px;}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.sec-controls{display:flex;align-items:center;gap:8px;}
+.add-btn{font-size:11px;padding:3px 9px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--grey);cursor:pointer;font-family:var(--sans);}
+.add-btn:hover{border-color:var(--accent);color:var(--text);}
+.chevron{color:var(--muted);font-size:11px;transition:transform .2s;}
+.sec-body{display:block;}
+.sec-body.collapsed{display:none;}
+.item-count{font-size:11px;color:var(--muted);font-weight:400;}
+
+/* BULLET AREA */
+.bullet-area{padding:12px 14px;background:var(--surface);}
+.bullet-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;}
+.bdot{color:var(--accent);margin-top:4px;flex-shrink:0;font-size:16px;}
+.bullet-row textarea{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 9px;resize:none;min-height:34px;overflow:hidden;outline:none;transition:border-color .15s;}
+.bullet-row textarea:focus{border-color:var(--accent);}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead th{background:var(--surface2);color:var(--grey);font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;padding:7px 9px;text-align:left;border-bottom:1px solid var(--border);font-weight:600;}
+tbody tr{border-bottom:1px solid #21262d;transition:background .1s;}
+tbody tr:nth-child(even){background:rgba(0,0,0,.2);}
+tbody tr:hover{background:var(--surface2);}
+tbody td{padding:5px 5px;vertical-align:top;}
+tbody td input,tbody td textarea{width:100%;background:transparent;border:1px solid transparent;border-radius:4px;color:var(--text);font-family:var(--sans);font-size:12.5px;padding:4px 6px;resize:none;min-height:28px;outline:none;transition:border-color .15s,background .15s;}
+tbody td input:focus,tbody td textarea:focus{border-color:var(--accent);background:rgba(46,117,182,.08);}
+tbody td textarea{overflow:hidden;}
+.td-del{width:28px;text-align:center;}
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:3px 5px;line-height:1;}
+.del-btn:hover{color:var(--red);}
+.col-id{width:110px;}
+.col-desc{width:26%;}
+.col-upd{width:24%;}
+.col-act{width:auto;}
+.col-status{width:90px;}
+select.status-sel{background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;padding:3px 5px;width:100%;cursor:pointer;font-family:var(--sans);outline:none;}
+select.s-active{border-color:var(--green)!important;color:#7ee787!important;}
+select.s-monitor{border-color:var(--orange)!important;color:#ffcc66!important;}
+select.s-hold{border-color:var(--muted)!important;color:var(--grey)!important;}
+select.s-close{border-color:var(--red)!important;color:#ff8080!important;}
+select.s-waiting{border-color:#2e75b6!important;color:#79b8ff!important;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px;width:min(580px,95vw);max-height:85vh;overflow-y:auto;}
+.modal-box h2{font-size:15px;margin-bottom:6px;}
+.modal-box p{font-size:12.5px;color:var(--muted);margin-bottom:10px;}
+.modal-box textarea{width:100%;background:#0d1117;border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Consolas',monospace;font-size:11.5px;padding:10px;resize:vertical;min-height:180px;outline:none;margin-bottom:10px;}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.err{color:var(--red);font-size:12px;margin-bottom:8px;}
+
+/* EMPTY ROW MSG */
+.empty-msg{color:var(--muted);font-style:italic;font-size:12px;padding:14px 12px;}
+
+/* DRAG HANDLES */
+.drag-handle{cursor:grab;color:#444;font-size:13px;padding:0 6px;user-select:none;flex-shrink:0;line-height:1;}
+.drag-handle:hover{color:var(--grey);}
+.drag-handle:active{cursor:grabbing;}
+.section.drag-over{outline:2px dashed var(--accent);outline-offset:-2px;}
+.section.dragging{opacity:0.4;}
+tr.drag-over-top td{border-top:2px solid var(--accent)!important;}
+tr.drag-over-bot td{border-bottom:2px solid var(--accent)!important;}
+tr.row-dragging{opacity:0.3;}
+.td-drag{width:22px;text-align:center;cursor:grab;color:#444;font-size:13px;}
+.td-drag:hover{color:var(--grey);}
+.bullet-row .drag-handle{margin-top:5px;}
+
+@media print{
+  #topbar,.sec-controls,.add-btn,.del-btn,.modal-overlay{display:none!important;}
+  .sec-body.collapsed{display:block!important;}
+  body{background:#fff;color:#000;}
+  #hdr{background:#1f4e79;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .section{border:1px solid #ccc!important;}
+  thead th{background:#dde;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="logo">Vertel <span>NOC</span> — Shift Handover</div>
+  <div class="actions">
+    <span class="save-status" id="save-status">Auto-saves every 30s</span>
+    <button class="btn danger" onclick="clearAll()">🗑 Clear</button>
+    <button class="btn" onclick="openImport()">📂 Import</button>
+    <button class="btn success" onclick="openExport()">📤 Share</button>
+    <button class="btn primary" onclick="saveNow()">💾 Save Now</button>
+    <button class="btn" onclick="window.print()">🖨 Print</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- HEADER -->
+  <div id="hdr">
+    <h1>SHIFT HANDOVER REPORT</h1>
+    <p>Vertel NOC — L1 Network Operations &nbsp;|&nbsp; Auto-saves every 30 seconds to this browser</p>
+    <div class="meta-grid">
+      <div class="meta-field"><label>Date</label><input id="m-date" placeholder="DD Month YYYY"/></div>
+      <div class="meta-field"><label>Shift From → To</label><input id="m-shift" placeholder="e.g. 06:00 → 14:00"/></div>
+      <div class="meta-field"><label>Handover To</label><input id="m-to" placeholder="Incoming engineer(s)"/></div>
+      <div class="meta-field"><label>On-Call Phone</label><input id="m-phone" placeholder="Name / number"/></div>
+    </div>
+  </div>
+
+  <!-- SECTIONS CONTAINER -->
+  <div id="sections-container"></div>
+
+</div><!-- /main -->
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal-box">
+    <h2>📤 Share / Export Handover</h2>
+    <p>Copy the JSON below and send via Teams or email. Your colleague clicks Import and pastes it to load your exact handover.</p>
+    <textarea id="export-ta" readonly></textarea>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="copyExport()">📋 Copy to Clipboard</button>
+      <button class="btn success" onclick="downloadExport()">⬇ Download .json</button>
+      <button class="btn danger" onclick="closeModal('export-modal')">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal-box">
+    <h2>📂 Import Handover</h2>
+    <p>Paste the JSON from your colleague. This will replace your current data.</p>
+    <div class="err" id="import-err"></div>
+    <textarea id="import-ta" placeholder="Paste handover JSON here..."></textarea>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="doImport()">✅ Import & Load</button>
+      <button class="btn danger" onclick="closeModal('import-modal')">✕ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── SECTION DEFINITIONS ─────────────────────────────────────
+const SECTIONS = [
+  { id:"highlights", label:"⚠ KEY HIGHLIGHTS",           color:"#2e75b6", bg:"#0a1e35",   border:"#2e75b6", type:"bullets" },
+  { id:"active",     label:"🔴 ACTIVE INCIDENTS",         color:"#da3633", bg:"#2d0d0d",   border:"#da3633", type:"table"   },
+  { id:"customer",   label:"🟠 CUSTOMER / THIRD PARTY",   color:"#d18616", bg:"#2d1a00",   border:"#d18616", type:"table"   },
+  { id:"noc",        label:"🔵 WAITING ON NOC",           color:"#2e75b6", bg:"#0a1a2e",   border:"#2e75b6", type:"table"   },
+  { id:"closure",    label:"🟢 PENDING CLOSURE",          color:"#3fb950", bg:"#0d1f0d",   border:"#3fb950", type:"table"   },
+  { id:"ict",        label:"⚙ ICT / INTERNAL",           color:"#8b949e", bg:"#1a1a1a",   border:"#555",    type:"table"   },
+  { id:"fyi",        label:"ℹ FYI / MISCELLANEOUS",      color:"#8b949e", bg:"#1a1a1a",   border:"#555",    type:"bullets" },
+];
+
+// ─── STATE ───────────────────────────────────────────────────
+let state = {
+  meta: { date:"", shift:"", to:"", phone:"" },
+  sections: {},
+  collapsed: {}
+};
+
+// ─── INIT ────────────────────────────────────────────────────
+function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+function newRow(){ return { id:uid(), inc:"", desc:"", update:"", action:"", status:"Active" }; }
+function newBullet(){ return { id:uid(), text:"" }; }
+
+function initState(){
+  SECTIONS.forEach(s => {
+    state.sections[s.id] = s.type==="table"
+      ? [newRow(), newRow()]
+      : [newBullet(), newBullet()];
+  });
+  const now = new Date();
+  state.meta.date = now.toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
+}
+
+// ─── BUILD DOM ───────────────────────────────────────────────
+function buildSections(){
+  const container = document.getElementById('sections-container');
+  container.innerHTML = '';
+  SECTIONS.forEach(sec => {
+    const div = document.createElement('div');
+    div.className = 'section';
+    div.id = 'sec-'+sec.id;
+    div.style.border = `1px solid ${sec.border}33`;
+    div.innerHTML = `
+      <div class="sec-hdr" id="hdr-${sec.id}"
+           style="background:${sec.bg};border-bottom-color:${sec.border}55;"
+           onclick="toggleSection('${sec.id}')">
+        <div class="sec-title">
+          <span class="drag-handle" draggable="true"
+            onmousedown="event.stopPropagation()"
+            ondragstart="secDragStart(event,'${sec.id}')"
+            ondragend="secDragEnd(event)"
+            onclick="event.stopPropagation()"
+            title="Drag to reorder section">⠿</span>
+          <span class="dot" style="background:${sec.color}"></span>
+          ${sec.label}
+          <span class="item-count" id="count-${sec.id}"></span>
+        </div>
+        <div class="sec-controls" onclick="event.stopPropagation()">
+          <button class="add-btn" onclick="addItem('${sec.id}')">+ Add</button>
+          <span class="chevron" id="chev-${sec.id}">▼</span>
+        </div>
+      </div>
+      <div class="sec-body" id="body-${sec.id}"
+           ondragover="secDragOver(event,'${sec.id}')"
+           ondrop="secDrop(event,'${sec.id}')"
+           ondragleave="secDragLeave(event,'${sec.id}')">
+        ${sec.type==='table' ? buildTable(sec) : buildBullets(sec)}
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function buildTable(sec){
+  return `<div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th class="td-drag"></th>
+        <th class="col-id">INC / IINC #</th>
+        <th class="col-desc">Site / Description</th>
+        <th class="col-act">Next Action</th>
+        <th class="col-status">Status</th>
+        <th class="td-del"></th>
+      </tr></thead>
+      <tbody id="rows-${sec.id}"></tbody>
+    </table>
+  </div>`;
+}
+
+function buildBullets(sec){
+  return `<div class="bullet-area" id="bullets-${sec.id}"></div>`;
+}
+
+// ─── RENDER STATE → DOM ──────────────────────────────────────
+function renderAll(){
+  // meta
+  document.getElementById('m-date').value  = state.meta.date  || '';
+  document.getElementById('m-shift').value = state.meta.shift || '';
+  document.getElementById('m-to').value    = state.meta.to    || '';
+  document.getElementById('m-phone').value = state.meta.phone || '';
+
+  // sections
+  SECTIONS.forEach(sec => {
+    const items = state.sections[sec.id] || [];
+    document.getElementById('count-'+sec.id).textContent = `(${items.length})`;
+
+    // collapsed
+    const body = document.getElementById('body-'+sec.id);
+    const chev = document.getElementById('chev-'+sec.id);
+    if(state.collapsed[sec.id]){
+      body.classList.add('collapsed');
+      chev.style.transform = 'rotate(-90deg)';
+    } else {
+      body.classList.remove('collapsed');
+      chev.style.transform = '';
+    }
+
+    if(sec.type==='table') renderTable(sec, items);
+    else renderBullets(sec, items);
+  });
+}
+
+function renderTable(sec, items){
+  const tbody = document.getElementById('rows-'+sec.id);
+  tbody.innerHTML = '';
+  if(!items.length){
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-msg">No items — click + Add</td></tr>`;
+    return;
+  }
+  items.forEach((row,i) => {
+    const tr = document.createElement('tr');
+    tr.id = 'row-'+row.id;
+    tr.draggable = true;
+    const statusClass = 's-'+row.status.toLowerCase();
+    tr.innerHTML = `
+      <td class="td-drag" title="Drag to reorder" draggable="true"
+        ondragstart="rowDragStart(event,'${sec.id}','${row.id}')"
+        ondragend="rowDragEnd(event)"
+        ondragover="rowDragOver(event,'${sec.id}','${row.id}')"
+        ondrop="rowDrop(event,'${sec.id}','${row.id}')"
+        ondragleave="rowDragLeave(event)">⠿</td>
+      <td class="col-id"><input value="${esc(row.inc)}" placeholder="INC / IINC #"
+        onchange="updateField('${sec.id}','${row.id}','inc',this.value)"/></td>
+      <td class="col-desc"><textarea rows="1" placeholder="Site / description..."
+        onchange="updateField('${sec.id}','${row.id}','desc',this.value)">${esc(row.desc)}</textarea></td>
+      <td class="col-act"><textarea rows="1" placeholder="Next action for incoming shift..."
+        onchange="updateField('${sec.id}','${row.id}','action',this.value)">${esc(row.action)}</textarea></td>
+      <td class="col-status">
+        <select class="status-sel ${statusClass}" onchange="updateStatus('${sec.id}','${row.id}',this)">
+          ${['Active','Monitor','Hold','Waiting','Close'].map(o=>`<option${o===row.status?' selected':''}>${o}</option>`).join('')}
+        </select>
+      </td>
+      <td class="td-del"><button class="del-btn" onclick="deleteItem('${sec.id}','${row.id}')">✕</button></td>`;
+    tbody.appendChild(tr);
+    tr.querySelectorAll('textarea').forEach(autoResize);
+  });
+}
+
+function renderBullets(sec, items){
+  const area = document.getElementById('bullets-'+sec.id);
+  area.innerHTML = '';
+  if(!items.length){
+    area.innerHTML = `<div class="empty-msg">No items — click + Add</div>`;
+    return;
+  }
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'bullet-row';
+    div.id = 'brow-'+item.id;
+    div.draggable = true;
+    div.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder"
+        ondragstart="bulletDragStart(event,'${sec.id}','${item.id}')"
+        ondragend="bulletDragEnd(event)"
+        ondragover="bulletDragOver(event,'${sec.id}','${item.id}')"
+        ondrop="bulletDrop(event,'${sec.id}','${item.id}')"
+        ondragleave="bulletDragLeave(event)">⠿</span>
+      <span class="bdot">•</span>
+      <textarea rows="1" placeholder="Enter highlight or note..."
+        onchange="updateField('${sec.id}','${item.id}','text',this.value)">${esc(item.text)}</textarea>
+      <button class="del-btn" onclick="deleteItem('${sec.id}','${item.id}')">✕</button>`;
+    area.appendChild(div);
+    autoResize(div.querySelector('textarea'));
+  });
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────────
+function toggleSection(id){
+  state.collapsed[id] = !state.collapsed[id];
+  renderAll();
+  scheduleSave();
+}
+
+function addItem(secId){
+  const sec = SECTIONS.find(s=>s.id===secId);
+  state.sections[secId].push(sec.type==='table' ? newRow() : newBullet());
+  renderAll();
+  scheduleSave();
+  // focus last input
+  setTimeout(()=>{
+    const tbody = document.getElementById('rows-'+secId);
+    const area = document.getElementById('bullets-'+secId);
+    const el = tbody ? tbody.querySelector('tr:last-child input') : area.querySelector('.bullet-row:last-child textarea');
+    if(el) el.focus();
+  },50);
+}
+
+function deleteItem(secId, rowId){
+  state.sections[secId] = state.sections[secId].filter(r=>r.id!==rowId);
+  renderAll();
+  scheduleSave();
+}
+
+function updateField(secId, rowId, field, value){
+  const item = state.sections[secId].find(r=>r.id===rowId);
+  if(item) item[field] = value;
+  document.getElementById('count-'+secId).textContent = `(${state.sections[secId].length})`;
+  scheduleSave();
+}
+
+function updateStatus(secId, rowId, sel){
+  updateField(secId, rowId, 'status', sel.value);
+  sel.className = 'status-sel s-'+sel.value.toLowerCase();
+}
+
+// ─── META LISTENERS ──────────────────────────────────────────
+function bindMeta(){
+  ['date','shift','to','phone'].forEach(k => {
+    document.getElementById('m-'+k).addEventListener('input', function(){
+      state.meta[k] = this.value;
+      scheduleSave();
+    });
+  });
+}
+
+// ─── AUTO RESIZE ─────────────────────────────────────────────
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=el.scrollHeight+'px';
+}
+document.addEventListener('input', e => {
+  if(e.target.tagName==='TEXTAREA') autoResize(e.target);
+});
+
+// ─── SAVE / LOAD ─────────────────────────────────────────────
+let saveTimer = null;
+function scheduleSave(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(persistSave, 30000);
+}
+
+function persistSave(){
+  try{
+    localStorage.setItem('vertel_handover_v3', JSON.stringify(state));
+    showStatus('✓ Auto-saved','saved');
+  } catch(e){
+    showStatus('✗ Save failed','error');
+  }
+}
+
+function saveNow(){
+  try{
+    localStorage.setItem('vertel_handover_v3', JSON.stringify(state));
+    showStatus('✓ Saved!','saved');
+  } catch(e){
+    showStatus('✗ Error','error');
+  }
+}
+
+function loadSaved(){
+  try{
+    const raw = localStorage.getItem('vertel_handover_v3');
+    if(!raw) return false;
+    const parsed = JSON.parse(raw);
+    state = parsed;
+    return true;
+  } catch(e){ return false; }
+}
+
+function showStatus(msg, cls){
+  const el = document.getElementById('save-status');
+  el.textContent = msg;
+  el.className = 'save-status '+cls;
+  setTimeout(()=>{ el.textContent='Auto-saves every 30s'; el.className='save-status'; }, 3000);
+}
+
+// ─── CLEAR ───────────────────────────────────────────────────
+function clearAll(){
+  if(!confirm('Clear all data? This cannot be undone.')) return;
+  state = { meta:{date:'',shift:'',to:'',phone:''}, sections:{}, collapsed:{} };
+  initState();
+  renderAll();
+  saveNow();
+}
+
+// ─── EXPORT / SHARE ──────────────────────────────────────────
+function openExport(){
+  document.getElementById('export-ta').value = JSON.stringify(state,null,2);
+  document.getElementById('export-modal').classList.add('open');
+}
+function copyExport(){
+  const ta = document.getElementById('export-ta');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(()=>alert('✅ Copied to clipboard!'));
+}
+function downloadExport(){
+  const blob = new Blob([document.getElementById('export-ta').value],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'handover_'+(state.meta.date||'export').replace(/\s/g,'_')+'.json';
+  a.click();
+}
+
+// ─── IMPORT ──────────────────────────────────────────────────
+function openImport(){
+  document.getElementById('import-ta').value='';
+  document.getElementById('import-err').textContent='';
+  document.getElementById('import-modal').classList.add('open');
+}
+function doImport(){
+  try{
+    const parsed = JSON.parse(document.getElementById('import-ta').value);
+    if(!parsed.meta||!parsed.sections) throw new Error('bad');
+    state = parsed;
+    renderAll();
+    saveNow();
+    closeModal('import-modal');
+  } catch(e){
+    document.getElementById('import-err').textContent='❌ Invalid JSON. Please paste a valid handover export.';
+  }
+}
+
+// ─── SECTION DRAG & DROP ─────────────────────────────────────
+let dragSecId = null;
+
+function secDragStart(e, secId){
+  dragSecId = secId;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(()=> document.getElementById('sec-'+secId).classList.add('dragging'), 0);
+}
+function secDragEnd(e){
+  if(dragSecId) document.getElementById('sec-'+dragSecId).classList.remove('dragging');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('drag-over'));
+  dragSecId = null;
+}
+function secDragOver(e, secId){
+  if(!dragSecId || dragSecId===secId) return;
+  e.preventDefault();
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('drag-over'));
+  document.getElementById('sec-'+secId).classList.add('drag-over');
+}
+function secDragLeave(e, secId){
+  document.getElementById('sec-'+secId).classList.remove('drag-over');
+}
+function secDrop(e, targetSecId){
+  e.preventDefault();
+  if(!dragSecId || dragSecId===targetSecId) return;
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('drag-over'));
+  const fromIdx = SECTIONS.findIndex(s=>s.id===dragSecId);
+  const toIdx   = SECTIONS.findIndex(s=>s.id===targetSecId);
+  const [moved] = SECTIONS.splice(fromIdx,1);
+  SECTIONS.splice(toIdx,0,moved);
+  buildSections();
+  renderAll();
+  scheduleSave();
+  dragSecId = null;
+}
+
+// ─── ROW DRAG & DROP ─────────────────────────────────────────
+let dragRowSec = null, dragRowId = null;
+
+function rowDragStart(e, secId, rowId){
+  dragRowSec = secId; dragRowId = rowId;
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation();
+  setTimeout(()=>{ const tr=document.getElementById('row-'+rowId); if(tr) tr.classList.add('row-dragging'); },0);
+}
+function rowDragEnd(e){
+  if(dragRowId){ const tr=document.getElementById('row-'+dragRowId); if(tr) tr.classList.remove('row-dragging'); }
+  document.querySelectorAll('tr.drag-over-top,tr.drag-over-bot').forEach(r=>{r.classList.remove('drag-over-top','drag-over-bot');});
+  dragRowSec=null; dragRowId=null;
+}
+function rowDragOver(e, secId, rowId){
+  if(!dragRowId || dragRowId===rowId || dragRowSec!==secId) return;
+  e.preventDefault(); e.stopPropagation();
+  document.querySelectorAll('tr.drag-over-top,tr.drag-over-bot').forEach(r=>{r.classList.remove('drag-over-top','drag-over-bot');});
+  const tr = document.getElementById('row-'+rowId);
+  if(!tr) return;
+  const rect = tr.getBoundingClientRect();
+  const mid  = rect.top + rect.height/2;
+  tr.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bot');
+}
+function rowDragLeave(e){
+  document.querySelectorAll('tr.drag-over-top,tr.drag-over-bot').forEach(r=>{r.classList.remove('drag-over-top','drag-over-bot');});
+}
+function rowDrop(e, secId, targetRowId){
+  e.preventDefault(); e.stopPropagation();
+  if(!dragRowId || dragRowId===targetRowId || dragRowSec!==secId) return;
+  document.querySelectorAll('tr.drag-over-top,tr.drag-over-bot').forEach(r=>{r.classList.remove('drag-over-top','drag-over-bot');});
+  const items = state.sections[secId];
+  const fromIdx = items.findIndex(r=>r.id===dragRowId);
+  const toIdx   = items.findIndex(r=>r.id===targetRowId);
+  const tr = document.getElementById('row-'+targetRowId);
+  const rect = tr ? tr.getBoundingClientRect() : null;
+  const insertAfter = rect && e.clientY >= rect.top + rect.height/2;
+  const [moved] = items.splice(fromIdx,1);
+  const newTo = items.findIndex(r=>r.id===targetRowId);
+  items.splice(insertAfter ? newTo+1 : newTo, 0, moved);
+  renderAll();
+  scheduleSave();
+}
+
+// ─── BULLET DRAG & DROP ──────────────────────────────────────
+let dragBulSec=null, dragBulId=null;
+
+function bulletDragStart(e, secId, itemId){
+  dragBulSec=secId; dragBulId=itemId;
+  e.dataTransfer.effectAllowed='move';
+  e.stopPropagation();
+  setTimeout(()=>{ const d=document.getElementById('brow-'+itemId); if(d) d.style.opacity='.3'; },0);
+}
+function bulletDragEnd(e){
+  if(dragBulId){ const d=document.getElementById('brow-'+dragBulId); if(d) d.style.opacity=''; }
+  document.querySelectorAll('.bullet-row').forEach(b=>b.style.borderTop=b.style.borderBottom='');
+  dragBulSec=null; dragBulId=null;
+}
+function bulletDragOver(e, secId, itemId){
+  if(!dragBulId || dragBulId===itemId || dragBulSec!==secId) return;
+  e.preventDefault(); e.stopPropagation();
+  document.querySelectorAll('.bullet-row').forEach(b=>b.style.borderTop=b.style.borderBottom='');
+  const d=document.getElementById('brow-'+itemId);
+  if(!d) return;
+  const rect=d.getBoundingClientRect();
+  if(e.clientY < rect.top+rect.height/2) d.style.borderTop='2px solid #2e75b6';
+  else d.style.borderBottom='2px solid #2e75b6';
+}
+function bulletDragLeave(e){
+  document.querySelectorAll('.bullet-row').forEach(b=>b.style.borderTop=b.style.borderBottom='');
+}
+function bulletDrop(e, secId, targetId){
+  e.preventDefault(); e.stopPropagation();
+  if(!dragBulId || dragBulId===targetId || dragBulSec!==secId) return;
+  document.querySelectorAll('.bullet-row').forEach(b=>b.style.borderTop=b.style.borderBottom='');
+  const items=state.sections[secId];
+  const fromIdx=items.findIndex(r=>r.id===dragBulId);
+  const toIdx=items.findIndex(r=>r.id===targetId);
+  const d=document.getElementById('brow-'+targetId);
+  const rect=d?d.getBoundingClientRect():null;
+  const insertAfter=rect && e.clientY>=rect.top+rect.height/2;
+  const [moved]=items.splice(fromIdx,1);
+  const newTo=items.findIndex(r=>r.id===targetId);
+  items.splice(insertAfter?newTo+1:newTo,0,moved);
+  renderAll();
+  scheduleSave();
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────
+function esc(str){
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── BOOT ────────────────────────────────────────────────────
+window.addEventListener('load', ()=>{
+  const loaded = loadSaved();
+  if(!loaded) initState();
+  buildSections();
+  renderAll();
+  bindMeta();
+
+  // auto-save every 30s
+  setInterval(persistSave, 30000);
+});
+</script>
+</body>
+</html>
